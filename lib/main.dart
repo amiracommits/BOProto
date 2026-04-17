@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
+import 'package:screenshot/screenshot.dart';
+import 'package:share_plus/share_plus.dart';
+import 'dart:io';
 
 class TransferData {
   final String cuentaOrigen;
@@ -34,6 +37,8 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
+/* PANTALLA DE RECOPILACION DE DATOS PANTALLA 1*/
 
 class TransferScreen extends StatefulWidget {
   const TransferScreen({super.key});
@@ -329,14 +334,24 @@ class _ToggleMock extends StatelessWidget {
   }
 }
 
-//Confirmation Screen la joya de la coronaƒ√
-class ConfirmationScreen extends StatelessWidget {
+/* PANTALLA DE CONFIRMACION PANTALLA 2*/
+
+//esta clase queda como widget que solo recibe datos
+class ConfirmationScreen extends StatefulWidget {
   final TransferData data;
 
   const ConfirmationScreen({super.key, required this.data});
 
+  @override
+  State<ConfirmationScreen> createState() => _ConfirmationScreenState();
+}
+
+// ahora aqui va todo el codigo de el layout de confirmacion
+//corona
+class _ConfirmationScreenState extends State<ConfirmationScreen> {
+  final ScreenshotController screenshotController = ScreenshotController();
+
   String _formatCuenta(String cuenta) {
-    // Aplica máscara 99-333-999999-3
     final digits = cuenta.replaceAll(RegExp(r'\D'), '');
     if (digits.length < 11) return cuenta;
     return '${digits.substring(0, 2)}-${digits.substring(2, 5)}-${digits.substring(5, 11)}-${digits.substring(11, 12)}';
@@ -376,7 +391,12 @@ class ConfirmationScreen extends StatelessWidget {
             child: Center(
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16),
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  top: 2,
+                  bottom: 8,
+                ), //este es el margen entre el contenedor y el contenido
                 decoration: BoxDecoration(
                   color: const Color(0xFF1E1E1E),
                   borderRadius: BorderRadius.circular(16),
@@ -385,79 +405,83 @@ class ConfirmationScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Column(
-                      children: [
-                        // 🔹 TÍTULO + COMPARTIR
-                        Stack(
-                          children: [
-                            // CENTRO REAL
-                            const Center(
+                    // 🔹 TÍTULO + COMPARTIR
+                    SizedBox(
+                      height:
+                          76, // 👈 altura explícita para que Positioned no se corte
+                      child: Stack(
+                        children: [
+                          // Título centrado absolutamente
+                          const Align(
+                            alignment: Alignment.center,
+                            child: Center(
                               child: Text(
                                 "Transferencia Exitosa",
                                 style: TextStyle(
-                                  fontSize: 14,
+                                  fontSize: 15,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ),
-
-                            // DERECHA
-                            Positioned(
-                              right: 0,
-                              top: 0,
-                              child: Column(
-                                children: [
-                                  Image.asset(
-                                    'assets/images/share001.png',
-                                    height: 42,
-                                    width: 42,
-                                  ),
-                                  const SizedBox(height: 2),
-                                  const Text(
-                                    "Compartir",
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        // 🔹 CHECK CENTRADO
-                        Center(
-                          child: Image.asset(
-                            'assets/images/check001.png',
-                            height: 70,
-                            width: 70,
                           ),
-                        ),
-
-                        const SizedBox(height: 12),
-                      ],
+                          // Share anclado a la derecha
+                          Positioned(
+                            right: 20,
+                            top: 30,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment
+                                  .end, // 👈 alinea a la derecha
+                              children: [
+                                Image.asset(
+                                  'assets/images/share001.png',
+                                  height: 45,
+                                  width: 60,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
+
+                    const SizedBox(height: 0),
+
+                    // 🔹 CHECK CENTRADO
+                    Center(
+                      child: Image.asset(
+                        'assets/images/check001.png',
+                        height: 75, //tamano de el check
+                        width: 75, //tamano de el check
+                      ),
+                    ),
+
+                    const SizedBox(height: 6),
 
                     // Campos de confirmación
                     _ConfirmField(
-                        label: "Cuenta Origen", value: data.cuentaOrigen),
+                        label: "Cuenta Origen",
+                        value: widget.data.cuentaOrigen),
                     const SizedBox(height: 4),
                     _ConfirmField(
                         label: "Cuenta Destino",
-                        value: _formatCuenta(data.cuentaDestino)),
+                        value: _formatCuenta(widget.data.cuentaDestino)),
                     const SizedBox(height: 4),
-                    _ConfirmField(label: "Nombre", value: data.nombre),
+                    _ConfirmField(
+                      label: "Nombre",
+                      value: widget.data.nombre.toUpperCase(),
+                      singleLine:
+                          true, // 👈 este campo se corta si es muy grande la cadena
+                    ),
                     const SizedBox(height: 4),
                     _ConfirmField(
                         label: "Monto Transferido",
-                        value: _formatMonto(data.monto)),
+                        value: _formatMonto(widget.data.monto)),
                     const SizedBox(height: 4),
                     _ConfirmField(label: "Referencia", value: referencia),
 
-                    const SizedBox(height: 14),
+                    const SizedBox(
+                        height:
+                            30), //space between last textbox and green buttons
 
                     // Botones
                     Row(
@@ -490,12 +514,17 @@ class ConfirmationScreen extends StatelessWidget {
   }
 }
 
-// Campo de solo lectura con label en negrita
+// campo de solo lectura para confirmacion
 class _ConfirmField extends StatelessWidget {
   final String label;
   final String value;
+  final bool singleLine; // 👈 parametro que controla el overflow de texto
 
-  const _ConfirmField({required this.label, required this.value});
+  const _ConfirmField({
+    required this.label,
+    required this.value,
+    this.singleLine = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -512,13 +541,16 @@ class _ConfirmField extends StatelessWidget {
         const SizedBox(height: 6),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           decoration: BoxDecoration(
             border: Border.all(color: Colors.grey),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Text(
             value,
+            maxLines: singleLine ? 1 : null, // 👈
+            overflow:
+                singleLine ? TextOverflow.ellipsis : TextOverflow.visible, // 👈
             style: const TextStyle(color: Colors.white, fontSize: 14),
           ),
         ),
@@ -568,9 +600,9 @@ class _BottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 80,
+      height: 70,
       color: const Color(0xFF2C2C2C), // 👈 gris oscuro más parecido al mockup
-      padding: const EdgeInsets.symmetric(horizontal: 25), // 👈 más margen
+      padding: const EdgeInsets.symmetric(horizontal: 20), // 👈 más margen
       child: Row(
         mainAxisAlignment:
             MainAxisAlignment.spaceEvenly, // 👈 agrupa más al centro
@@ -613,7 +645,7 @@ class _NavItem extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisSize: MainAxisSize.min, // 👈 no ocupa más espacio del necesario
       children: [
-        Icon(icon, color: color, size: 35),
+        Icon(icon, color: color, size: 32),
         const SizedBox(height: 4),
         Flexible(
           child: Text(
